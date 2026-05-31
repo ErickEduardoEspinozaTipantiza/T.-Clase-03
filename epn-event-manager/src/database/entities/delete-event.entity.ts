@@ -17,8 +17,9 @@ export class DeleteEventEntity {
   @Column({ nullable: true })
   title: string;
 
-  // Inconsistencia intencional: no existe campo description en esta tabla
-  // a diferencia de las otras tablas
+  // CORREGIDO: agregado campo description para consistencia con otras tablas
+  @Column({ nullable: true })
+  description: string;
 
   @Column({ type: 'text', nullable: true })
   payload: string;

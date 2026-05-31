@@ -23,8 +23,8 @@ export class EventsService {
   async registerEvent(dto: CreateEventDto): Promise<{ ok: boolean }> {
     const action = (dto.action ?? '').toUpperCase();
     const payloadStr = JSON.stringify(dto.payload ?? {});
-    // Fecha guardada en formato local, no UTC (debilidad intencional)
-    const localDate = new Date().toLocaleString();
+    // ADAPTATIVO: Fecha guardada en UTC (ISO 8601) para compatibilidad entre sistemas
+    const isoDate = new Date().toISOString();
 
     if (action === 'CREATE') {
       const ev = this.createRepo.create({
@@ -34,7 +34,7 @@ export class EventsService {
         title: dto.title,
         description: dto.description,
         payload: payloadStr,
-        recorded_at: localDate,
+        recorded_at: isoDate,
       });
       await this.createRepo.save(ev);
       return { ok: true };
@@ -48,23 +48,24 @@ export class EventsService {
         title: dto.title,
         description: dto.description,
         payload: payloadStr,
-        timestamp: localDate,
+        timestamp: isoDate,
       });
       await this.updateRepo.save(ev);
       return { ok: true };
     }
 
     if (action === 'DELETE') {
-      // BUG INTENCIONAL (correctivo): se construye el objeto pero se devuelve
-      // exito antes de persistirlo. El save nunca se ejecuta.
-      this.deleteRepo.create({
+      // CORREGIDO (mantenimiento correctivo): se construye el objeto y se persiste
+      const ev = this.deleteRepo.create({
         source: dto.source,
         entity: dto.entity,
         action: dto.action,
         title: dto.title,
+        description: dto.description,
         payload: payloadStr,
-        createdAt: localDate,
+        createdAt: isoDate,
       });
+      await this.deleteRepo.save(ev);
       return { ok: true };
     }
 
@@ -76,7 +77,7 @@ export class EventsService {
         title: dto.title,
         description: dto.description,
         payload: payloadStr,
-        event_date: localDate,
+        event_date: isoDate,
       });
       await this.queryRepo.save(ev);
       return { ok: true };
@@ -86,27 +87,40 @@ export class EventsService {
   }
 
   async findAll(): Promise<object[]> {
-    // Incidencia perfectiva: agrega 4 tablas en memoria sin orden garantizado
+    // Merges 4 tables with consistent ISO timestamps
     const creates = await this.createRepo.find();
     const updates = await this.updateRepo.find();
     const deletes = await this.deleteRepo.find();
     const queries = await this.queryRepo.find();
 
-    // Ordena lexicograficamente por strings de fecha heterogeneos (incorrecto)
+    // Normaliza nombres de campos de fecha a ISO strings y ordena
     const merged = [
-      ...creates.map((e) => ({ ...e, _table: 'create_events' })),
-      ...updates.map((e) => ({ ...e, _table: 'update_events' })),
-      ...deletes.map((e) => ({ ...e, _table: 'delete_events' })),
-      ...queries.map((e) => ({ ...e, _table: 'query_events' })),
+      ...creates.map((e) => ({
+        ...e,
+        _table: 'create_events',
+        _timestamp: (e as unknown as Record<string, string>).recorded_at,
+      })),
+      ...updates.map((e) => ({
+        ...e,
+        _table: 'update_events',
+        _timestamp: (e as unknown as Record<string, string>).timestamp,
+      })),
+      ...deletes.map((e) => ({
+        ...e,
+        _table: 'delete_events',
+        _timestamp: (e as unknown as Record<string, string>).createdAt,
+      })),
+      ...queries.map((e) => ({
+        ...e,
+        _table: 'query_events',
+        _timestamp: (e as unknown as Record<string, string>).event_date,
+      })),
     ];
 
+    // PERFECTIVO: Ordena por timestamp ISO normalizado (ascendente)
     merged.sort((a, b) => {
-      const ra = a as unknown as Record<string, string>;
-      const rb = b as unknown as Record<string, string>;
-      const ta =
-        ra.recorded_at ?? ra.timestamp ?? ra.createdAt ?? ra.event_date ?? '';
-      const tb =
-        rb.recorded_at ?? rb.timestamp ?? rb.createdAt ?? rb.event_date ?? '';
+      const ta = (a as unknown as Record<string, string>)._timestamp ?? '';
+      const tb = (b as unknown as Record<string, string>)._timestamp ?? '';
       return ta.localeCompare(tb);
     });
 
@@ -134,12 +148,14 @@ export class EventsService {
     const createCount = await this.createRepo.count();
     const updateCount = await this.updateRepo.count();
     const deleteCount = await this.deleteRepo.count();
-    // Incidencia perfectiva: query_events no se incluye en el total
+    // PERFECTIVO: Ahora incluye query_events en el total (antes faltaba)
+    const queryCount = await this.queryRepo.count();
     return {
       create: createCount,
       update: updateCount,
       delete: deleteCount,
-      total: createCount + updateCount + deleteCount,
+      query: queryCount,
+      total: createCount + updateCount + deleteCount + queryCount,
     };
   }
 }

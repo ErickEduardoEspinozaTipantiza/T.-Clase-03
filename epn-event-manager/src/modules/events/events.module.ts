@@ -6,6 +6,7 @@ import { CreateEventEntity } from '../../database/entities/create-event.entity';
 import { UpdateEventEntity } from '../../database/entities/update-event.entity';
 import { DeleteEventEntity } from '../../database/entities/delete-event.entity';
 import { QueryEventEntity } from '../../database/entities/query-event.entity';
+import { LoggerModule } from '../../common/logger/logger.module';
 
 @Module({
   imports: [
@@ -15,6 +16,7 @@ import { QueryEventEntity } from '../../database/entities/query-event.entity';
       DeleteEventEntity,
       QueryEventEntity,
     ]),
+    LoggerModule,
   ],
   controllers: [EventsController],
   providers: [EventsService],
