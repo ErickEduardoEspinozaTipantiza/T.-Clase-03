@@ -1,12 +1,27 @@
 # Guía de Ejecución y Prueba - EPN Event Manager
 
+## Paso 0: Configuración de Variables de Entorno
+
+```bash
+# Copiar archivo de ejemplo
+cp .env.example .env
+
+# Abrir y configurar (opcional: usar los valores por defecto del .env.example)
+```
+
+**Variables requeridas en `./.env`:**
+- `PORT`: Puerto del servidor (default: 3000)
+- `API_KEY_HEADER`: Nombre del header para autenticación (default: X-FIS-EPN-KEY)
+- `API_KEY_SECRET`: Clave secreta para API (puede usar el valor por defecto para testing)
+- `NODE_ENV`: Ambiente (development/production)
+
 ## Paso 1: Instalación de Dependencias
 
 ```bash
 npm install
 ```
 
-## Paso 2: Iniciar el Servidor
+## Paso 3: Iniciar el Servidor
 
 ```bash
 # Modo desarrollo con watch
@@ -21,7 +36,7 @@ El servidor estará disponible en `http://localhost:3000`
 
 ---
 
-## Paso 3: Probar los Endpoints
+## Paso 4: Probar los Endpoints
 
 ### A. Health Check (Verificar conectividad BD)
 
