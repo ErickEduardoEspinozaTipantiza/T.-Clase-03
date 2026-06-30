@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Guía de contribución
+    url: https://github.com/ErickEduardoEspinozaTipantiza/T.-Clase-03/blob/main/epn-event-manager/CONTRIBUTING.md
+    about: DoR, DoD y estrategia de ramas del equipo

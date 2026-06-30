@@ -1,5 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import {
+  BadRequestException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { EventsController } from './events.controller';
 import { EventsService } from './events.service';
 import { LoggerService } from '../../common/logger/logger.service';
@@ -69,7 +72,7 @@ describe('EventsController', () => {
 
     it('PREVENTIVO: debe rechazar evento con validación fallida', async () => {
       const invalidDto = {
-        source: 'crud-planetas!',  // Carácter inválido
+        source: 'crud-planetas!', // Carácter inválido
         entity: 'planet',
         action: 'CREATE',
         title: 'Planeta creado',
@@ -159,7 +162,9 @@ describe('EventsController', () => {
   describe('findByEntity', () => {
     it('CORRECTO: debe obtener eventos por entity válida', async () => {
       const entity = 'planet';
-      const events = [{ id: 1, source: 'crud-planetas', entity, action: 'CREATE' }];
+      const events = [
+        { id: 1, source: 'crud-planetas', entity, action: 'CREATE' },
+      ];
 
       mockEventsService.findByEntity.mockResolvedValue(events);
 

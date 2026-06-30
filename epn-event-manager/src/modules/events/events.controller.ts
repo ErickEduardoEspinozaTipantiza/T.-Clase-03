@@ -43,10 +43,15 @@ export class EventsController {
 
       return result;
     } catch (error) {
-      this.logger.error('Error al registrar evento', error.stack, 'EventsController', {
-        source: dto.source,
-        error: error.message,
-      });
+      this.logger.error(
+        'Error al registrar evento',
+        error.stack,
+        'EventsController',
+        {
+          source: dto.source,
+          error: error.message,
+        },
+      );
       throw new InternalServerErrorException('No se pudo registrar el evento');
     }
   }
@@ -56,11 +61,20 @@ export class EventsController {
     try {
       this.logger.log('Obteniendo todos los eventos', 'EventsController');
       const result = await this.eventsService.findAll();
-      this.logger.log(`Se obtuvieron ${result.length} eventos`, 'EventsController');
+      this.logger.log(
+        `Se obtuvieron ${result.length} eventos`,
+        'EventsController',
+      );
       return result;
     } catch (error) {
-      this.logger.error('Error al obtener eventos', error.stack, 'EventsController');
-      throw new InternalServerErrorException('No se pudieron obtener los eventos');
+      this.logger.error(
+        'Error al obtener eventos',
+        error.stack,
+        'EventsController',
+      );
+      throw new InternalServerErrorException(
+        'No se pudieron obtener los eventos',
+      );
     }
   }
 
@@ -71,16 +85,27 @@ export class EventsController {
         throw new BadRequestException('source no puede estar vacío');
       }
 
-      this.logger.log('Buscando eventos por source', 'EventsController', { source });
+      this.logger.log('Buscando eventos por source', 'EventsController', {
+        source,
+      });
       const result = await this.eventsService.findBySource(source);
-      this.logger.log(`Se encontraron ${result.length} eventos para source=${source}`, 'EventsController');
+      this.logger.log(
+        `Se encontraron ${result.length} eventos para source=${source}`,
+        'EventsController',
+      );
       return result;
     } catch (error) {
-      this.logger.warn('Error al buscar eventos por source', 'EventsController', {
-        source,
-        error: error.message,
-      });
-      throw new BadRequestException(`No se pudieron obtener eventos para source: ${source}`);
+      this.logger.warn(
+        'Error al buscar eventos por source',
+        'EventsController',
+        {
+          source,
+          error: error.message,
+        },
+      );
+      throw new BadRequestException(
+        `No se pudieron obtener eventos para source: ${source}`,
+      );
     }
   }
 
@@ -91,16 +116,27 @@ export class EventsController {
         throw new BadRequestException('entity no puede estar vacío');
       }
 
-      this.logger.log('Buscando eventos por entity', 'EventsController', { entity });
+      this.logger.log('Buscando eventos por entity', 'EventsController', {
+        entity,
+      });
       const result = await this.eventsService.findByEntity(entity);
-      this.logger.log(`Se encontraron ${result.length} eventos para entity=${entity}`, 'EventsController');
+      this.logger.log(
+        `Se encontraron ${result.length} eventos para entity=${entity}`,
+        'EventsController',
+      );
       return result;
     } catch (error) {
-      this.logger.warn('Error al buscar eventos por entity', 'EventsController', {
-        entity,
-        error: error.message,
-      });
-      throw new BadRequestException(`No se pudieron obtener eventos para entity: ${entity}`);
+      this.logger.warn(
+        'Error al buscar eventos por entity',
+        'EventsController',
+        {
+          entity,
+          error: error.message,
+        },
+      );
+      throw new BadRequestException(
+        `No se pudieron obtener eventos para entity: ${entity}`,
+      );
     }
   }
 }

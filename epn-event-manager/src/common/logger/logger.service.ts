@@ -16,15 +16,17 @@ export class LoggerService {
         winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss Z' }),
         winston.format.errors({ stack: true }),
         winston.format.json(),
-        winston.format.printf(({ timestamp, level, message, context, ...meta }) => {
-          return JSON.stringify({
-            timestamp,
-            level: level.toUpperCase(),
-            message,
-            context,
-            ...meta,
-          });
-        }),
+        winston.format.printf(
+          ({ timestamp, level, message, context, ...meta }) => {
+            return JSON.stringify({
+              timestamp,
+              level: level.toUpperCase(),
+              message,
+              context,
+              ...meta,
+            });
+          },
+        ),
       ),
       defaultMeta: { service: 'epn-event-manager' },
       transports: [
@@ -32,11 +34,16 @@ export class LoggerService {
         new winston.transports.Console({
           format: winston.format.combine(
             winston.format.colorize(),
-            winston.format.printf(({ timestamp, level, message, context, ...meta }) => {
-              const contextStr = context ? `[${context}]` : '';
-              const metaStr = Object.keys(meta).length > 0 ? JSON.stringify(meta, null, 2) : '';
-              return `${timestamp} ${level} ${contextStr} ${message} ${metaStr}`;
-            }),
+            winston.format.printf(
+              ({ timestamp, level, message, context, ...meta }) => {
+                const contextStr = context ? `[${context}]` : '';
+                const metaStr =
+                  Object.keys(meta).length > 0
+                    ? JSON.stringify(meta, null, 2)
+                    : '';
+                return `${timestamp} ${level} ${contextStr} ${message} ${metaStr}`;
+              },
+            ),
           ),
         }),
         // Logs de ERROR en archivo

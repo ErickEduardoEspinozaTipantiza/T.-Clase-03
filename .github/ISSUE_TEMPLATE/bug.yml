@@ -1,0 +1,32 @@
+name: Bug
+description: Corrección de un error en el sistema
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Descripción del bug
+      description: ¿Qué ocurre y qué se esperaba?
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Pasos para reproducir
+      placeholder: |
+        1. Ejecutar POST /events con...
+        2. Observar respuesta 500
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Criterios de aceptación
+      placeholder: |
+        - [ ] El bug no se reproduce tras el fix
+        - [ ] Test de regresión agregado
+    validations:
+      required: true

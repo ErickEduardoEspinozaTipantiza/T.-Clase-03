@@ -1,0 +1,29 @@
+name: Technical Debt
+description: Refactorización o mejora de calidad interna
+title: "[Tech Debt]: "
+labels: ["technical-debt"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Deuda identificada
+      description: Code smell, God Object, duplicación, etc.
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Criterios de aceptación
+      placeholder: |
+        - [ ] Servicio dividido según SRP
+        - [ ] Cobertura ≥ 80% en lógica afectada
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impacto si no se corrige
+    validations:
+      required: true

@@ -1,0 +1,41 @@
+name: Feature
+description: Nueva funcionalidad del sistema
+title: "[Feature]: "
+labels: ["feature"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Definition of Ready (DoR)
+        Complete todos los campos antes de mover el ticket a *In Progress*.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Descripción
+      description: ¿Qué funcionalidad se necesita y por qué?
+      placeholder: Como usuario del Event Manager, necesito...
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Criterios de aceptación
+      description: Lista verificable de condiciones para cerrar el ticket
+      placeholder: |
+        - [ ] El endpoint responde 201
+        - [ ] Se persiste en BD
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Prioridad
+      options:
+        - Alta
+        - Media
+        - Baja
+    validations:
+      required: true

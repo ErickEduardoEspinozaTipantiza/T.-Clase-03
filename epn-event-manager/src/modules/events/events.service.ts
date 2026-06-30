@@ -1,161 +1,42 @@
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { CreateEventDto } from './dto/create-event.dto';
-import { CreateEventEntity } from '../../database/entities/create-event.entity';
-import { UpdateEventEntity } from '../../database/entities/update-event.entity';
-import { DeleteEventEntity } from '../../database/entities/delete-event.entity';
-import { QueryEventEntity } from '../../database/entities/query-event.entity';
+import {
+  EventRegistrationResult,
+  EventStatsSummary,
+  MergedEventRecord,
+} from './domain/event.types';
+import { EventRegistrationService } from './services/event-registration.service';
+import { EventQueryService } from './services/event-query.service';
+import { EventStatsService } from './services/event-stats.service';
 
+/**
+ * Fachada de aplicación que delega la lógica de negocio a servicios especializados.
+ */
 @Injectable()
 export class EventsService {
   constructor(
-    @InjectRepository(CreateEventEntity)
-    private readonly createRepo: Repository<CreateEventEntity>,
-    @InjectRepository(UpdateEventEntity)
-    private readonly updateRepo: Repository<UpdateEventEntity>,
-    @InjectRepository(DeleteEventEntity)
-    private readonly deleteRepo: Repository<DeleteEventEntity>,
-    @InjectRepository(QueryEventEntity)
-    private readonly queryRepo: Repository<QueryEventEntity>,
+    private readonly eventRegistrationService: EventRegistrationService,
+    private readonly eventQueryService: EventQueryService,
+    private readonly eventStatsService: EventStatsService,
   ) {}
 
-  async registerEvent(dto: CreateEventDto): Promise<{ ok: boolean }> {
-    const action = (dto.action ?? '').toUpperCase();
-    const payloadStr = JSON.stringify(dto.payload ?? {});
-    // ADAPTATIVO: Fecha guardada en UTC (ISO 8601) para compatibilidad entre sistemas
-    const isoDate = new Date().toISOString();
-
-    if (action === 'CREATE') {
-      const ev = this.createRepo.create({
-        source: dto.source,
-        entity: dto.entity,
-        action: dto.action,
-        title: dto.title,
-        description: dto.description,
-        payload: payloadStr,
-        recorded_at: isoDate,
-      });
-      await this.createRepo.save(ev);
-      return { ok: true };
-    }
-
-    if (action === 'UPDATE') {
-      const ev = this.updateRepo.create({
-        source: dto.source,
-        entity: dto.entity,
-        action: dto.action,
-        title: dto.title,
-        description: dto.description,
-        payload: payloadStr,
-        timestamp: isoDate,
-      });
-      await this.updateRepo.save(ev);
-      return { ok: true };
-    }
-
-    if (action === 'DELETE') {
-      // CORREGIDO (mantenimiento correctivo): se construye el objeto y se persiste
-      const ev = this.deleteRepo.create({
-        source: dto.source,
-        entity: dto.entity,
-        action: dto.action,
-        title: dto.title,
-        description: dto.description,
-        payload: payloadStr,
-        createdAt: isoDate,
-      });
-      await this.deleteRepo.save(ev);
-      return { ok: true };
-    }
-
-    if (action === 'QUERY') {
-      const ev = this.queryRepo.create({
-        source: dto.source,
-        entity: dto.entity,
-        action: dto.action,
-        title: dto.title,
-        description: dto.description,
-        payload: payloadStr,
-        event_date: isoDate,
-      });
-      await this.queryRepo.save(ev);
-      return { ok: true };
-    }
-
-    return { ok: false };
+  registerEvent(dto: CreateEventDto): Promise<EventRegistrationResult> {
+    return this.eventRegistrationService.registerEvent(dto);
   }
 
-  async findAll(): Promise<object[]> {
-    // Merges 4 tables with consistent ISO timestamps
-    const creates = await this.createRepo.find();
-    const updates = await this.updateRepo.find();
-    const deletes = await this.deleteRepo.find();
-    const queries = await this.queryRepo.find();
-
-    // Normaliza nombres de campos de fecha a ISO strings y ordena
-    const merged = [
-      ...creates.map((e) => ({
-        ...e,
-        _table: 'create_events',
-        _timestamp: (e as unknown as Record<string, string>).recorded_at,
-      })),
-      ...updates.map((e) => ({
-        ...e,
-        _table: 'update_events',
-        _timestamp: (e as unknown as Record<string, string>).timestamp,
-      })),
-      ...deletes.map((e) => ({
-        ...e,
-        _table: 'delete_events',
-        _timestamp: (e as unknown as Record<string, string>).createdAt,
-      })),
-      ...queries.map((e) => ({
-        ...e,
-        _table: 'query_events',
-        _timestamp: (e as unknown as Record<string, string>).event_date,
-      })),
-    ];
-
-    // PERFECTIVO: Ordena por timestamp ISO normalizado (ascendente)
-    merged.sort((a, b) => {
-      const ta = (a as unknown as Record<string, string>)._timestamp ?? '';
-      const tb = (b as unknown as Record<string, string>)._timestamp ?? '';
-      return ta.localeCompare(tb);
-    });
-
-    return merged;
+  findAll(): Promise<MergedEventRecord[]> {
+    return this.eventQueryService.findAllEvents();
   }
 
-  async findBySource(source: string): Promise<object[]> {
-    const creates = await this.createRepo.findBy({ source });
-    const updates = await this.updateRepo.findBy({ source });
-    const deletes = await this.deleteRepo.findBy({ source });
-    const queries = await this.queryRepo.findBy({ source });
-    return [...creates, ...updates, ...deletes, ...queries];
+  findBySource(source: string): Promise<object[]> {
+    return this.eventQueryService.findEventsBySource(source);
   }
 
-  async findByEntity(entity: string): Promise<object[]> {
-    // Incidencia preventiva: parametro entity usado directamente sin sanitizar
-    const creates = await this.createRepo.findBy({ entity });
-    const updates = await this.updateRepo.findBy({ entity });
-    const deletes = await this.deleteRepo.findBy({ entity });
-    const queries = await this.queryRepo.findBy({ entity });
-    return [...creates, ...updates, ...deletes, ...queries];
+  findByEntity(entity: string): Promise<object[]> {
+    return this.eventQueryService.findEventsByEntity(entity);
   }
 
-  async getStats(): Promise<object> {
-    const createCount = await this.createRepo.count();
-    const updateCount = await this.updateRepo.count();
-    const deleteCount = await this.deleteRepo.count();
-    // PERFECTIVO: Ahora incluye query_events en el total (antes faltaba)
-    const queryCount = await this.queryRepo.count();
-    return {
-      create: createCount,
-      update: updateCount,
-      delete: deleteCount,
-      query: queryCount,
-      total: createCount + updateCount + deleteCount + queryCount,
-    };
+  getStats(): Promise<EventStatsSummary> {
+    return this.eventStatsService.getEventStats();
   }
 }

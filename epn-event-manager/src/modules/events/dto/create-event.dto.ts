@@ -3,7 +3,6 @@ import {
   IsNotEmpty,
   IsOptional,
   MaxLength,
-  MinLength,
   Matches,
   ValidateNested,
 } from 'class-validator';
@@ -14,7 +13,8 @@ export class CreateEventDto {
   @IsNotEmpty()
   @MaxLength(50)
   @Matches(/^[a-zA-Z0-9\-_]*$/, {
-    message: 'source solo puede contener letras, números, guiones y guiones bajos',
+    message:
+      'source solo puede contener letras, números, guiones y guiones bajos',
   })
   source: string;
 
@@ -22,7 +22,8 @@ export class CreateEventDto {
   @IsNotEmpty()
   @MaxLength(100)
   @Matches(/^[a-zA-Z0-9\-_]*$/, {
-    message: 'entity solo puede contener letras, números, guiones y guiones bajos',
+    message:
+      'entity solo puede contener letras, números, guiones y guiones bajos',
   })
   entity: string;
 

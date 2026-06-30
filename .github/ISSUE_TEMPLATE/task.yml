@@ -1,0 +1,30 @@
+name: Task
+description: Documentación, investigación o configuración
+title: "[Task]: "
+labels: ["task"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Descripción de la tarea
+    validations:
+      required: true
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Criterios de aceptación
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Categoría
+      options:
+        - Documentación
+        - Configuración CI/CD
+        - Investigación
+        - Gestión de proyecto
+    validations:
+      required: true
