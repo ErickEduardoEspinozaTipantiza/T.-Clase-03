@@ -1,6 +1,6 @@
 {
   "name": "epn-event-manager",
-  "version": "0.0.1",
+  "version": "1.1.0",
   "description": "",
   "author": "",
   "private": true,
@@ -71,9 +71,20 @@
       "^.+\\.(t|j)s$": "ts-jest"
     },
     "collectCoverageFrom": [
-      "**/*.(t|j)s"
+      "modules/events/**/*.ts",
+      "!modules/events/**/*.module.ts",
+      "!modules/events/**/*.controller.ts",
+      "!modules/events/dto/**",
+      "!modules/events/domain/**"
     ],
     "coverageDirectory": "../coverage",
+    "coverageThreshold": {
+      "global": {
+        "statements": 80,
+        "lines": 80,
+        "functions": 80
+      }
+    },
     "testEnvironment": "node"
   }
 }

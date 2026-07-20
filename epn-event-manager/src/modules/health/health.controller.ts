@@ -20,7 +20,7 @@ export class HealthController {
         timestamp: new Date().toISOString(),
         database: 'connected',
       };
-    } catch (error) {
+    } catch {
       throw new HttpException(
         {
           status: 'error',

@@ -6,6 +6,7 @@ import { CreateEventEntity } from '../../database/entities/create-event.entity';
 import { UpdateEventEntity } from '../../database/entities/update-event.entity';
 import { DeleteEventEntity } from '../../database/entities/delete-event.entity';
 import { QueryEventEntity } from '../../database/entities/query-event.entity';
+import { DateRangeFilter } from './domain/event.types';
 
 @Injectable()
 export class EventsService {
@@ -86,7 +87,12 @@ export class EventsService {
     return { ok: false };
   }
 
-  async findAll(): Promise<object[]> {
+  /**
+   * Retorna todos los eventos combinados de las 4 tablas.
+   * Acepta un filtro opcional de rango de fechas (ISO 8601).
+   * Si `from > to`, retorna un array vacío.
+   */
+  async findAll(filter?: DateRangeFilter): Promise<object[]> {
     // Merges 4 tables with consistent ISO timestamps
     const creates = await this.createRepo.find();
     const updates = await this.updateRepo.find();
@@ -124,7 +130,35 @@ export class EventsService {
       return ta.localeCompare(tb);
     });
 
+    // Filtrado por rango de fechas si se especificó
+    if (filter?.from || filter?.to) {
+      return this.applyDateRangeFilter(merged, filter);
+    }
+
     return merged;
+  }
+
+  /**
+   * Aplica el filtro de rango de fechas sobre los eventos ya combinados.
+   * Si from > to, retorna array vacío.
+   */
+  applyDateRangeFilter(events: object[], filter: DateRangeFilter): object[] {
+    const fromDate = filter.from ? new Date(filter.from) : null;
+    const toDate = filter.to ? new Date(filter.to) : null;
+
+    // Rango inválido: from > to → retorna vacío
+    if (fromDate && toDate && fromDate > toDate) {
+      return [];
+    }
+
+    return events.filter((e) => {
+      const ts = (e as unknown as Record<string, string>)._timestamp;
+      if (!ts) return true;
+      const eventDate = new Date(ts);
+      if (fromDate && eventDate < fromDate) return false;
+      if (toDate && eventDate > toDate) return false;
+      return true;
+    });
   }
 
   async findBySource(source: string): Promise<object[]> {

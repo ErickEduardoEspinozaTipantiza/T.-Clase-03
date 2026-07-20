@@ -1,5 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import {
+  BadRequestException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { EventsController } from './events.controller';
 import { EventsService } from './events.service';
 import { LoggerService } from '../../common/logger/logger.service';
@@ -69,7 +72,7 @@ describe('EventsController', () => {
 
     it('PREVENTIVO: debe rechazar evento con validación fallida', async () => {
       const invalidDto = {
-        source: 'crud-planetas!',  // Carácter inválido
+        source: 'crud-planetas!', // Carácter inválido
         entity: 'planet',
         action: 'CREATE',
         title: 'Planeta creado',
@@ -105,7 +108,7 @@ describe('EventsController', () => {
   });
 
   describe('findAll', () => {
-    it('CORRECTO: debe obtener todos los eventos', async () => {
+    it('CORRECTO: debe obtener todos los eventos sin filtro', async () => {
       const events = [
         {
           id: 1,
@@ -121,8 +124,44 @@ describe('EventsController', () => {
       const result = await controller.findAll();
 
       expect(result).toEqual(events);
-      expect(service.findAll).toHaveBeenCalled();
+      expect(service.findAll).toHaveBeenCalledWith({
+        from: undefined,
+        to: undefined,
+      });
       expect(logger.log).toHaveBeenCalled();
+    });
+
+    it('FEATURE: debe filtrar eventos por rango de fechas válido', async () => {
+      const events = [
+        { id: 1, _timestamp: '2024-06-15T00:00:00Z', _table: 'create_events' },
+      ];
+      mockEventsService.findAll.mockResolvedValue(events);
+
+      const result = await controller.findAll(
+        '2024-01-01T00:00:00Z',
+        '2024-12-31T23:59:59Z',
+      );
+
+      expect(result).toEqual(events);
+      expect(service.findAll).toHaveBeenCalledWith({
+        from: '2024-01-01T00:00:00Z',
+        to: '2024-12-31T23:59:59Z',
+      });
+    });
+
+    it('FEATURE: debe lanzar BadRequestException cuando from > to', async () => {
+      await expect(
+        controller.findAll('2024-12-31T00:00:00Z', '2024-01-01T00:00:00Z'),
+      ).rejects.toThrow(BadRequestException);
+
+      // No debe llamar al servicio si la validación falla
+      expect(mockEventsService.findAll).not.toHaveBeenCalled();
+    });
+
+    it('FEATURE: debe lanzar BadRequestException cuando from es fecha inválida', async () => {
+      await expect(
+        controller.findAll('fecha-invalida', '2024-12-31T00:00:00Z'),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('CORRECTIVO: debe manejar error al obtener eventos', async () => {
@@ -159,7 +198,9 @@ describe('EventsController', () => {
   describe('findByEntity', () => {
     it('CORRECTO: debe obtener eventos por entity válida', async () => {
       const entity = 'planet';
-      const events = [{ id: 1, source: 'crud-planetas', entity, action: 'CREATE' }];
+      const events = [
+        { id: 1, source: 'crud-planetas', entity, action: 'CREATE' },
+      ];
 
       mockEventsService.findByEntity.mockResolvedValue(events);
 
