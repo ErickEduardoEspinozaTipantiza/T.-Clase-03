@@ -1,5 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import {
+  BadRequestException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { EventsController } from './events.controller';
 import { EventsService } from './events.service';
 import { LoggerService } from '../../common/logger/logger.service';
@@ -43,22 +46,26 @@ describe('EventsController', () => {
   });
 
   describe('registerEvent', () => {
-    it('CORRECTO: debe registrar un evento válido exitosamente', async () => {
-      const dto: CreateEventDto = {
-        source: 'crud-planetas',
-        entity: 'planet',
-        action: 'CREATE',
-        title: 'Planeta creado',
-        description: 'Se creó Marte',
-        payload: { id: 1, name: 'Marte' },
-      };
+    const dto: CreateEventDto = {
+      source: 'crud-planetas',
+      entity: 'planet',
+      action: 'CREATE',
+      title: 'Planeta creado',
+      description: 'Se creó Marte',
+      payload: { id: 1, name: 'Marte' },
+    };
 
-      const expected = { id: 1, ...dto, recorded_at: new Date().toISOString() };
+    it('CORRECTO: debe registrar un evento y retornar { ok, correlationId }', async () => {
+      const expected = {
+        ok: true,
+        correlationId: '550e8400-e29b-41d4-a716-446655440000',
+      };
       mockEventsService.registerEvent.mockResolvedValue(expected);
 
       const result = await controller.registerEvent(dto);
 
       expect(result).toEqual(expected);
+      expect(result).toHaveProperty('correlationId');
       expect(service.registerEvent).toHaveBeenCalledWith(dto);
       expect(logger.log).toHaveBeenCalledWith(
         expect.stringContaining('Registrando nuevo evento'),
@@ -67,28 +74,29 @@ describe('EventsController', () => {
       );
     });
 
-    it('PREVENTIVO: debe rechazar evento con validación fallida', async () => {
+    it('FEATURE: el correlationId en la respuesta debe ser un string no vacío', async () => {
+      mockEventsService.registerEvent.mockResolvedValue({
+        ok: true,
+        correlationId: 'abc-123-uuid',
+      });
+
+      const result = await controller.registerEvent(dto);
+
+      expect(result.correlationId).toBeTruthy();
+      expect(typeof result.correlationId).toBe('string');
+    });
+
+    it('PREVENTIVO: debe rechazar evento con validación fallida', () => {
       const invalidDto = {
-        source: 'crud-planetas!',  // Carácter inválido
+        source: 'crud-planetas!',
         entity: 'planet',
         action: 'CREATE',
         title: 'Planeta creado',
       };
-
-      // La validación ocurriría en el ValidationPipe
-      // Este test verifica que el sistema rechace caracteres especiales
       expect(invalidDto.source).toMatch(/[!]/);
     });
 
     it('CORRECTIVO: debe manejar errores y registrarlos', async () => {
-      const dto: CreateEventDto = {
-        source: 'crud-planetas',
-        entity: 'planet',
-        action: 'CREATE',
-        title: 'Evento',
-        description: 'Test',
-      };
-
       const error = new Error('Error de base de datos');
       mockEventsService.registerEvent.mockRejectedValue(error);
 
@@ -105,24 +113,46 @@ describe('EventsController', () => {
   });
 
   describe('findAll', () => {
-    it('CORRECTO: debe obtener todos los eventos', async () => {
-      const events = [
-        {
-          id: 1,
-          source: 'crud-planetas',
-          entity: 'planet',
-          action: 'CREATE',
-          title: 'Planeta creado',
-        },
-      ];
-
+    it('CORRECTO: debe obtener todos los eventos sin filtro', async () => {
+      const events = [{ id: 1, source: 'crud-planetas', entity: 'planet' }];
       mockEventsService.findAll.mockResolvedValue(events);
 
       const result = await controller.findAll();
 
       expect(result).toEqual(events);
-      expect(service.findAll).toHaveBeenCalled();
-      expect(logger.log).toHaveBeenCalled();
+      expect(service.findAll).toHaveBeenCalledWith({
+        from: undefined,
+        to: undefined,
+      });
+    });
+
+    it('FEATURE: debe filtrar eventos por rango de fechas válido', async () => {
+      const events = [{ id: 1, _timestamp: '2024-06-15T00:00:00Z' }];
+      mockEventsService.findAll.mockResolvedValue(events);
+
+      const result = await controller.findAll(
+        '2024-01-01T00:00:00Z',
+        '2024-12-31T23:59:59Z',
+      );
+
+      expect(result).toEqual(events);
+      expect(service.findAll).toHaveBeenCalledWith({
+        from: '2024-01-01T00:00:00Z',
+        to: '2024-12-31T23:59:59Z',
+      });
+    });
+
+    it('FEATURE: debe lanzar BadRequestException cuando from > to', async () => {
+      await expect(
+        controller.findAll('2024-12-31T00:00:00Z', '2024-01-01T00:00:00Z'),
+      ).rejects.toThrow(BadRequestException);
+      expect(mockEventsService.findAll).not.toHaveBeenCalled();
+    });
+
+    it('FEATURE: debe lanzar BadRequestException cuando from es fecha inválida', async () => {
+      await expect(
+        controller.findAll('fecha-invalida', '2024-12-31T00:00:00Z'),
+      ).rejects.toThrow(BadRequestException);
     });
 
     it('CORRECTIVO: debe manejar error al obtener eventos', async () => {
@@ -139,12 +169,10 @@ describe('EventsController', () => {
   describe('findBySource', () => {
     it('CORRECTO: debe obtener eventos por source válido', async () => {
       const source = 'crud-planetas';
-      const events = [{ id: 1, source, entity: 'planet', action: 'CREATE' }];
-
+      const events = [{ id: 1, source, entity: 'planet' }];
       mockEventsService.findBySource.mockResolvedValue(events);
 
       const result = await controller.findBySource(source);
-
       expect(result).toEqual(events);
       expect(service.findBySource).toHaveBeenCalledWith(source);
     });
@@ -159,12 +187,10 @@ describe('EventsController', () => {
   describe('findByEntity', () => {
     it('CORRECTO: debe obtener eventos por entity válida', async () => {
       const entity = 'planet';
-      const events = [{ id: 1, source: 'crud-planetas', entity, action: 'CREATE' }];
-
+      const events = [{ id: 1, source: 'crud-planetas', entity }];
       mockEventsService.findByEntity.mockResolvedValue(events);
 
       const result = await controller.findByEntity(entity);
-
       expect(result).toEqual(events);
       expect(service.findByEntity).toHaveBeenCalledWith(entity);
     });
