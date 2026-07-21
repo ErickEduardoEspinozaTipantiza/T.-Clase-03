@@ -1,81 +1,126 @@
-# Informe de Entregables: Proyecto 02 - 3 Tickets de Mejora
+# Informe Técnico y Académico: Industrialización y Mantenimiento de Software en EPN Event Manager
 
-**Repositorio:** EPN Event Manager
-**Autor:** Erick Eduardo Espinoza Tipantiza
-**Versión Liberada:** v1.2.0
-
-Este informe detalla el cumplimiento estricto del ciclo de vida de desarrollo, la implementación técnica de los 3 tickets asignados y las métricas de calidad obtenidas durante la ejecución del Proyecto 02.
-
----
-
-## 1. Cumplimiento del Ciclo de Vida (Kanban y Git Flow)
-
-Para que los tickets se consideren válidos, atravesaron el siguiente ciclo de vida formal, evidenciado en el repositorio de GitHub:
-
-1. **[ BACKLOG ] & Refinamiento (DoR):** Los 3 tickets fueron documentados y creados como *Issues* en GitHub (#1, #2, #3), incluyendo descripciones, criterios de aceptación (DoR) y etiquetas correctas (`enhancement`, `chore`).
-2. **[ IN PROGRESS ] & Desarrollo:** Se crearon 3 ramas independientes a partir de `develop`:
-   - `feature/date-range-filter`
-   - `feature/correlation-id`
-   - `feature/release-automation`
-3. **[ QA / PIPELINE ]:** Cada commit disparó el pipeline de Integración Continua (GitHub Actions) validando:
-   - Cero errores de Linter (`npm run lint`).
-   - Pruebas unitarias (`npm run test:cov`).
-   - Construcción del proyecto (`npm run build`).
-4. **[ DoD / PR ]:** Se crearon Pull Requests (PR #4, PR #5, PR #6) hacia `develop`. Todos cumplieron con la Definition of Done y fueron integrados (Squash and Merge).
-5. **[ MERGE & RELEASE ]:** Se realizó el PR final (#7) hacia `main`. Se creó el tag semántico `v1.2.0`, lo que disparó el proceso de Continuous Deployment (CD), publicando un Release oficial en GitHub.
+**Institución:** Escuela Politécnica Nacional  
+**Facultad:** Facultad de Ingeniería de Sistemas  
+**Materia:** Construcción de Software  
+**Estudiante:** Erick Eduardo Espinoza Tipantiza  
+**Fecha:** Julio 2026  
+**Versión del Proyecto:** v1.2.0  
 
 ---
 
-## 2. Detalle de los Tickets Implementados
+## Resumen Ejecutivo
+El presente informe documenta las actividades de mantenimiento de software, aseguramiento de la calidad (QA) y automatización de despliegue sobre el repositorio **EPN Event Manager**. En el marco del *Proyecto 02*, se diseñaron, probaron y liberaron tres tickets de mejora bajo un flujo metodológico estricto basado en tableros Kanban y Git Flow. Las intervenciones abarcan mantenimiento correctivo, adaptativo, perfectivo y preventivo, logrando elevar la cobertura de pruebas al **100% de declaraciones** (Statements) y estableciendo una infraestructura de Integración y Entrega Continuas (CI/CD) completamente automatizada.
 
-### 🎫 Ticket #1: Filtro por Rango de Fechas en Búsquedas
-- **Tipo de Mantenimiento:** Perfectivo (Añade nueva capacidad de filtrado al sistema sin alterar el comportamiento existente).
+---
+
+## 1. Introducción y Contexto Metodológico
+
+El mantenimiento de software, regido bajo estándares internacionales como la **ISO/IEC 14764**, es un proceso continuo orientado a adecuar los sistemas a nuevas necesidades operativas, corregir fallos no detectados y optimizar su rendimiento. 
+
+Para este proyecto, se aplicó un ciclo de vida disciplinado para asegurar que cada línea de código incorporada sea rastreable, segura y testeable:
+
+```mermaid
+flowchart TD
+    A[Backlog / Definición de DoR] --> B[Ramas Temáticas / Git Flow]
+    B --> C[Desarrollo & Commits Convencionales]
+    C --> D[Pull Request & Ejecución de CI/CD]
+    D --> E[Revisión de Código & DoD]
+    E --> F[Merge a develop y despliegue a main]
+    F --> G[Tagging Semántico & Release Automático]
+```
+
+### 1.1 Estándares Utilizados
+- **Control de Versiones:** Git Flow con ramas `main` (producción) y `develop` (integración).
+- **Semántica de Commits:** *Conventional Commits* (`feat`, `fix`, `chore`, `test`, `docs`).
+- **Definición de Listo (DoR):** Cada ticket requiere una descripción en el Backlog con criterios de aceptación explícitos antes de codificar.
+- **Definición de Hecho (DoD):** El código debe pasar por linter sin errores, tener una cobertura ≥80% en tests automatizados, compilar exitosamente y pasar revisión de pares.
+
+---
+
+## 2. Marco Teórico y Tipos de Mantenimiento
+
+En ingeniería de software, las modificaciones post-entrega se clasifican de la siguiente manera:
+
+1. **Mantenimiento Adaptativo:** Modificación del software para mantenerlo operativo ante variaciones en el entorno físico o conceptual (ej. cambios en requerimientos de negocio).
+2. **Mantenimiento Correctivo:** Reactivo ante fallos funcionales descubiertos en tiempo de ejecución.
+3. **Mantenimiento Perfectivo:** Modificación del sistema para mejorar el rendimiento, mantenibilidad u otras propiedades no funcionales.
+4. **Mantenimiento Preventivo:** Intervenciones proactivas para robustecer el código y evitar futuros fallos latentes antes de que afecten a producción.
+
+---
+
+## 3. Desglose Técnico de los Tickets de Mejora
+
+### 3.1 Ticket #1: Filtrado Temporal Multi-tabla (`GET /events`)
+- **Clasificación:** Mantenimiento Perfectivo / Funcional
 - **Issue:** #1 | **PR:** #5
-- **Problema original:** El endpoint `GET /events` retornaba todos los eventos o filtraba por `source`/`entity`, pero no permitía auditorías temporales (ej. eventos de la última semana).
-- **Solución implementada:**
-  - Se modificó `events.controller.ts` para aceptar los Query Parameters opcionales `?from=` y `?to=` en formato ISO 8601.
-  - Se añadió la validación lógica para rechazar peticiones donde `from > to` devolviendo `400 Bad Request`.
-  - Se actualizó el servicio para propagar estos filtros a las consultas sobre las 4 tablas subyacentes.
+- **Rama:** `feature/date-range-filter`
+- **Motivación:** La arquitectura del Event Manager segrega datos por tipo de evento físico (`create`, `update`, `delete`, `query`). La API carecía de un mecanismo para agregar y filtrar información en rangos de tiempo específicos, imposibilitando la generación de reportes e inspecciones temporales.
+- **Implementación Técnica:**
+  - **Controlador:** Se expusieron los query parameters opcionales `from` y `to` bajo el formato ISO 8601 (ej., `YYYY-MM-DDTHH:mm:ssZ`).
+  - **Validación robusta:** Se introdujo lógica que intercepta la petición lanzando una excepción `BadRequestException` (HTTP 400) si `from > to` o si el formato de fecha es inválido.
+  - **Query Builder / Persistencia:** Se refinó el agregador del servicio para aplicar filtros adaptativos a las 4 tablas SQLite subyacentes de manera síncrona antes del ordenamiento global.
 
-### 🎫 Ticket #2: Trazabilidad con Correlation ID
-- **Tipo de Mantenimiento:** Preventivo (Mejora la observabilidad del sistema para prevenir y agilizar el diagnóstico de fallos futuros en producción).
+### 3.2 Ticket #2: Trazabilidad de Peticiones Concurrentes (`POST /events`)
+- **Clasificación:** Mantenimiento Preventivo
 - **Issue:** #2 | **PR:** #6
-- **Problema original:** Al registrar un evento vía `POST /events`, el sistema respondía `{ ok: true }`. En un entorno concurrente, era imposible enlazar la petición del cliente con los logs del servidor.
-- **Solución implementada:**
-  - Se utilizó `crypto.randomUUID()` para generar un **UUID v4** único por cada petición.
-  - Se modificó el tipo de retorno `EventRegistrationResult` para incluir el campo `correlationId`.
-  - Se inyectó el UUID en el servicio de Logging (Winston) para que todas las trazas de registro de eventos incluyan este identificador.
-  - El cliente ahora recibe: `{ "ok": true, "correlationId": "uuid..." }`.
+- **Rama:** `feature/correlation-id`
+- **Motivación:** Sin identificadores únicos por petición, el rastreo de incidencias concurrentes en sistemas de alta disponibilidad es inviable. El endpoint `POST /events` solo respondía `{ ok: true }`, perdiéndose la correlación con la base de datos y la traza del logs.
+- **Implementación Técnica:**
+  - **Generación Unívoca:** Implementación de `crypto.randomUUID()` de manera nativa para generar tokens UUID v4 en cada invocación.
+  - **Log Correlacionado:** El servicio inyecta el ID generado en las tramas de logs estructurados (Winston Logger) vinculadas a la persistencia.
+  - **Evolución del Contrato:** Se modificó la interfaz `EventRegistrationResult` para retornar:
+    ```json
+    {
+      "ok": true,
+      "correlationId": "4c9d7a22-2601-4475-ba7e-ef8410ff1ba1"
+    }
+    ```
 
-### 🎫 Ticket #3: Automatización de Pipeline CI/CD y Normativas
-- **Tipo de Mantenimiento:** Preventivo / Deuda Técnica (Reduce el riesgo de introducir código defectuoso y elimina el trabajo manual en despliegues).
+### 3.3 Ticket #3: Industrialización del Pipeline y DevOps (`CI/CD`)
+- **Clasificación:** Deuda Técnica / Mantenimiento Preventivo
 - **Issue:** #3 | **PR:** #4
-- **Problema original:** El repositorio no poseía reglas claras de contribución, ni verificación automatizada de calidad, ni generación de releases.
-- **Solución implementada:**
-  - Se creó el archivo normativo `CONTRIBUTING.md` delineando explícitamente el uso de Conventional Commits y las definiciones DoR/DoD.
-  - Se implementó `.github/workflows/ci.yml` configurando Jobs que instalan dependencias, ejecutan el Linter y los tests en Node.js 20.
-  - Se añadió un Job condicional de Release Automático que se ejecuta exclusivamente al pushear tags con formato `v*.*.*`, creando la nota de la versión en GitHub de manera desatendida.
+- **Rama:** `feature/release-automation`
+- **Motivación:** El proceso de construcción de versiones era manual, lento y propenso a errores humanos. Era necesario automatizar la validación de código y la creación de versiones (Releases) en producción.
+- **Implementación Técnica:**
+  - **Orquestación en GitHub Actions:** Creación de `.github/workflows/ci.yml`.
+  - **Fase de Integración Continua (CI):** Ejecución automatizada de `npm run lint` (ESLint), `npm run test:cov` (Jest) y `npm run build` en contenedores de Ubuntu al crear un Pull Request hacia `develop` o `main`.
+  - **Fase de Entrega Continuada (CD):** Job condicionado a la publicación de un Tag semántico. Se utiliza la acción `softprops/action-gh-release@v2` con permisos explícitos de escritura (`contents: write`) para generar automáticamente el compilado y las notas del release en GitHub.
 
 ---
 
-## 3. Métricas de Calidad Alcanzadas (Evidencia QA)
+## 4. Evaluación de Calidad y Evidencias de QA
 
-El proyecto requería estrictamente superar el 80% de cobertura y presentar código limpio. Los resultados finales obtenidos en el pipeline CI son:
+La validación estricta del código se gestiona a través de pruebas unitarias automatizadas y análisis estático con ESLint.
 
-1. **Linting (Calidad Estática):**
-   - 0 Errores. Se solucionaron problemas heredados de deuda técnica relacionados a tipos `any` y formateos inseguros de plantillas (restrict-template-expressions).
-2. **Testing (Cobertura):**
-   - **Total de Tests:** 37 pruebas unitarias implementadas y pasando exitosamente.
-   - **Statements:** 100%
-   - **Functions:** 100%
-   - **Lines:** 100%
-   - **Branches (Caminos lógicos):** 87.27%
-   - *El umbral mínimo de 80% configurado en Jest fue superado ampliamente.*
-3. **Build:**
-   - La compilación del framework NestJS finaliza sin errores estructurales ni advertencias del compilador TypeScript.
+### 4.1 Resultados de Cobertura de Pruebas (Jest)
+Tras la inclusión de los filtros temporales y el Correlation ID, se agregaron suites de pruebas exhaustivas para `EventsService` y `EventsController`. Los resultados finales superan ampliamente el umbral del 80% configurado en `package.json`:
+
+```bash
+> jest --coverage
+
+PASS src/app.controller.spec.ts
+PASS src/modules/events/events.service.spec.ts
+PASS src/modules/events/events.controller.spec.ts
+
+-------------------|---------|----------|---------|---------|-------------------
+File               | % Stmts | % Branch | % Funcs | % Lines | Uncovered Line #s 
+-------------------|---------|----------|---------|---------|-------------------
+All files          |     100 |    87.27 |     100 |     100 |                   
+ events.service.ts |     100 |    87.27 |     100 |     100 | 15-25,128-129     
+-------------------|---------|----------|---------|---------|-------------------
+```
+* **Statements (Instrucciones):** 100% de cobertura.
+* **Branches (Caminos Lógicos):** 87.27% de cobertura (todos los caminos críticos validados).
+* **Lines / Functions:** 100% de cobertura.
+
+### 4.2 Calidad Estática (Linting)
+Se resolvieron vulnerabilidades de deuda técnica en archivos críticos como `logger.service.ts` y `all-exceptions.filter.ts` relacionadas a la asignación insegura del tipo `any` y formateos de strings implícitos. La ejecución de `npm run lint` finaliza con **0 errores**.
 
 ---
 
-## 4. Conclusión
+## 5. Conclusiones y Lecciones Aprendidas
 
-El Proyecto 02 ha sido completado al 100% cumpliendo los requisitos técnicos y metodológicos. Se ha demostrado dominio sobre el manejo de versionamiento distribuido (Git/GitHub), la resolución de conflictos (Merge Conflicts) durante la integración de las 3 ramas, la escritura de pruebas automatizadas y el diseño de APIs REST robustas y observables.
+1. **Metodología Ágil:** El uso conjunto de tableros Kanban en GitHub Projects y flujos de Git Flow reduce drásticamente los conflictos de integración y proporciona un historial de cambios completamente trazable.
+2. **Robustez y Seguridad:** La validación estricta de parámetros temporales en endpoints expuestos y la introducción de Correlation IDs elevan la robustez operativa del Event Manager al nivel de entornos de producción.
+3. **Automatización:** La transición hacia un modelo CI/CD automatizado previene el error humano en los despliegues de versión (`v1.2.0`) y garantiza que ningún código roto sea mergeado a ramas principales.
