@@ -1,13 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { randomUUID } from 'crypto';
 import { CreateEventDto } from './dto/create-event.dto';
 import { CreateEventEntity } from '../../database/entities/create-event.entity';
 import { UpdateEventEntity } from '../../database/entities/update-event.entity';
 import { DeleteEventEntity } from '../../database/entities/delete-event.entity';
 import { QueryEventEntity } from '../../database/entities/query-event.entity';
-import { DateRangeFilter, EventRegistrationResult } from './domain/event.types';
+import { DateRangeFilter } from './domain/event.types';
 
 @Injectable()
 export class EventsService {
@@ -22,12 +21,7 @@ export class EventsService {
     private readonly queryRepo: Repository<QueryEventEntity>,
   ) {}
 
-  /**
-   * Registra un nuevo evento en la tabla correspondiente según su acción.
-   * Retorna `{ ok, correlationId }` para trazabilidad de la petición.
-   */
-  async registerEvent(dto: CreateEventDto): Promise<EventRegistrationResult> {
-    const correlationId = randomUUID();
+  async registerEvent(dto: CreateEventDto): Promise<{ ok: boolean }> {
     const action = (dto.action ?? '').toUpperCase();
     const payloadStr = JSON.stringify(dto.payload ?? {});
     // ADAPTATIVO: Fecha guardada en UTC (ISO 8601) para compatibilidad entre sistemas
@@ -44,7 +38,7 @@ export class EventsService {
         recorded_at: isoDate,
       });
       await this.createRepo.save(ev);
-      return { ok: true, correlationId };
+      return { ok: true };
     }
 
     if (action === 'UPDATE') {
@@ -58,7 +52,7 @@ export class EventsService {
         timestamp: isoDate,
       });
       await this.updateRepo.save(ev);
-      return { ok: true, correlationId };
+      return { ok: true };
     }
 
     if (action === 'DELETE') {
@@ -73,7 +67,7 @@ export class EventsService {
         createdAt: isoDate,
       });
       await this.deleteRepo.save(ev);
-      return { ok: true, correlationId };
+      return { ok: true };
     }
 
     if (action === 'QUERY') {
@@ -87,10 +81,10 @@ export class EventsService {
         event_date: isoDate,
       });
       await this.queryRepo.save(ev);
-      return { ok: true, correlationId };
+      return { ok: true };
     }
 
-    return { ok: false, correlationId };
+    return { ok: false };
   }
 
   /**
@@ -99,11 +93,13 @@ export class EventsService {
    * Si `from > to`, retorna un array vacío.
    */
   async findAll(filter?: DateRangeFilter): Promise<object[]> {
+    // Merges 4 tables with consistent ISO timestamps
     const creates = await this.createRepo.find();
     const updates = await this.updateRepo.find();
     const deletes = await this.deleteRepo.find();
     const queries = await this.queryRepo.find();
 
+    // Normaliza nombres de campos de fecha a ISO strings y ordena
     const merged = [
       ...creates.map((e) => ({
         ...e,
@@ -134,6 +130,7 @@ export class EventsService {
       return ta.localeCompare(tb);
     });
 
+    // Filtrado por rango de fechas si se especificó
     if (filter?.from || filter?.to) {
       return this.applyDateRangeFilter(merged, filter);
     }
@@ -149,6 +146,7 @@ export class EventsService {
     const fromDate = filter.from ? new Date(filter.from) : null;
     const toDate = filter.to ? new Date(filter.to) : null;
 
+    // Rango inválido: from > to → retorna vacío
     if (fromDate && toDate && fromDate > toDate) {
       return [];
     }
@@ -172,6 +170,7 @@ export class EventsService {
   }
 
   async findByEntity(entity: string): Promise<object[]> {
+    // Incidencia preventiva: parametro entity usado directamente sin sanitizar
     const creates = await this.createRepo.findBy({ entity });
     const updates = await this.updateRepo.findBy({ entity });
     const deletes = await this.deleteRepo.findBy({ entity });

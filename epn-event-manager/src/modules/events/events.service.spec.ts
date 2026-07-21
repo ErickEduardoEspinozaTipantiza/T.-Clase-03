@@ -3,12 +3,13 @@ import { DateRangeFilter } from './domain/event.types';
 
 /**
  * Tests unitarios para EventsService.
- * Cubre: registerEvent (correlationId + acciones), findAll, findBySource,
- *        findByEntity, getStats y applyDateRangeFilter.
+ * Cubre: registerEvent, findAll, findBySource, findByEntity,
+ *        getStats y el helper applyDateRangeFilter.
  */
 describe('EventsService', () => {
   let service: EventsService;
 
+  // Mocks de repositorios TypeORM
   const makeRepoMock = () => ({
     create: jest.fn((dto) => dto),
     save: jest.fn().mockResolvedValue({}),
@@ -39,9 +40,9 @@ describe('EventsService', () => {
   });
 
   // ─────────────────────────────────────────────
-  // registerEvent — correlationId
+  // registerEvent
   // ─────────────────────────────────────────────
-  describe('registerEvent — correlationId', () => {
+  describe('registerEvent', () => {
     const baseDto = {
       source: 'crud-test',
       entity: 'planet',
@@ -50,110 +51,50 @@ describe('EventsService', () => {
       payload: { id: 1 },
     };
 
-    it('debe retornar un correlationId UUID v4 válido en evento CREATE', async () => {
+    it('debe persistir un evento CREATE y retornar { ok: true }', async () => {
       const result = await service.registerEvent({
         ...baseDto,
         action: 'CREATE',
       });
-      expect(result.ok).toBe(true);
-      expect(result.correlationId).toBeDefined();
-      // UUID v4 pattern: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
-      expect(result.correlationId).toMatch(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
-      );
+      expect(result).toEqual({ ok: true });
+      expect(createRepo.save).toHaveBeenCalledTimes(1);
     });
 
-    it('debe retornar un correlationId UUID v4 válido en evento UPDATE', async () => {
+    it('debe persistir un evento UPDATE y retornar { ok: true }', async () => {
       const result = await service.registerEvent({
         ...baseDto,
         action: 'UPDATE',
       });
-      expect(result.ok).toBe(true);
-      expect(result.correlationId).toMatch(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
-      );
+      expect(result).toEqual({ ok: true });
+      expect(updateRepo.save).toHaveBeenCalledTimes(1);
     });
 
-    it('debe retornar un correlationId UUID v4 válido en evento DELETE', async () => {
+    it('debe persistir un evento DELETE y retornar { ok: true }', async () => {
       const result = await service.registerEvent({
         ...baseDto,
         action: 'DELETE',
       });
-      expect(result.ok).toBe(true);
-      expect(result.correlationId).toMatch(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
-      );
+      expect(result).toEqual({ ok: true });
+      expect(deleteRepo.save).toHaveBeenCalledTimes(1);
     });
 
-    it('debe retornar un correlationId UUID v4 válido en evento QUERY', async () => {
+    it('debe persistir un evento QUERY y retornar { ok: true }', async () => {
       const result = await service.registerEvent({
         ...baseDto,
         action: 'QUERY',
       });
-      expect(result.ok).toBe(true);
-      expect(result.correlationId).toMatch(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
-      );
+      expect(result).toEqual({ ok: true });
+      expect(queryRepo.save).toHaveBeenCalledTimes(1);
     });
 
-    it('debe retornar correlationId incluso cuando la acción no es soportada', async () => {
+    it('debe retornar { ok: false } para una acción no soportada', async () => {
       const result = await service.registerEvent({
         ...baseDto,
         action: 'EXPORT',
       });
-      expect(result.ok).toBe(false);
-      expect(result.correlationId).toBeDefined();
-      expect(result.correlationId).toMatch(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i,
-      );
-    });
-
-    it('debe generar un correlationId único por cada llamada', async () => {
-      const result1 = await service.registerEvent({
-        ...baseDto,
-        action: 'CREATE',
-      });
-      const result2 = await service.registerEvent({
-        ...baseDto,
-        action: 'CREATE',
-      });
-      expect(result1.correlationId).not.toBe(result2.correlationId);
-    });
-
-    it('debe persistir CREATE y retornar { ok: true }', async () => {
-      const result = await service.registerEvent({
-        ...baseDto,
-        action: 'CREATE',
-      });
-      expect(result).toMatchObject({ ok: true });
-      expect(createRepo.save).toHaveBeenCalledTimes(1);
-    });
-
-    it('debe persistir UPDATE y retornar { ok: true }', async () => {
-      const result = await service.registerEvent({
-        ...baseDto,
-        action: 'UPDATE',
-      });
-      expect(result).toMatchObject({ ok: true });
-      expect(updateRepo.save).toHaveBeenCalledTimes(1);
-    });
-
-    it('debe persistir DELETE y retornar { ok: true }', async () => {
-      const result = await service.registerEvent({
-        ...baseDto,
-        action: 'DELETE',
-      });
-      expect(result).toMatchObject({ ok: true });
-      expect(deleteRepo.save).toHaveBeenCalledTimes(1);
-    });
-
-    it('debe persistir QUERY y retornar { ok: true }', async () => {
-      const result = await service.registerEvent({
-        ...baseDto,
-        action: 'QUERY',
-      });
-      expect(result).toMatchObject({ ok: true });
-      expect(queryRepo.save).toHaveBeenCalledTimes(1);
+      expect(result).toEqual({ ok: false });
+      expect(createRepo.save).not.toHaveBeenCalled();
+      expect(updateRepo.save).not.toHaveBeenCalled();
     });
 
     it('debe normalizar la acción a mayúsculas', async () => {
@@ -161,8 +102,14 @@ describe('EventsService', () => {
         ...baseDto,
         action: 'create',
       });
-      expect(result).toMatchObject({ ok: true });
+      expect(result).toEqual({ ok: true });
       expect(createRepo.save).toHaveBeenCalledTimes(1);
+    });
+
+    it('debe serializar el payload a JSON string', async () => {
+      await service.registerEvent({ ...baseDto, action: 'CREATE' });
+      const savedArg = createRepo.create.mock.calls[0][0];
+      expect(savedArg.payload).toBe(JSON.stringify({ id: 1 }));
     });
 
     it('debe manejar payload undefined sin errores', async () => {
@@ -172,7 +119,7 @@ describe('EventsService', () => {
         payload: undefined,
       };
       const result = await service.registerEvent(dtoSinPayload);
-      expect(result).toMatchObject({ ok: true });
+      expect(result).toEqual({ ok: true });
     });
   });
 
@@ -203,6 +150,20 @@ describe('EventsService', () => {
       expect(result).toHaveLength(4);
     });
 
+    it('debe ordenar eventos por _timestamp ascendente', async () => {
+      createRepo.find.mockResolvedValue([
+        { id: 2, recorded_at: '2024-06-01T00:00:00Z' },
+      ]);
+      updateRepo.find.mockResolvedValue([
+        { id: 1, timestamp: '2024-01-01T00:00:00Z' },
+      ]);
+
+      const result = await service.findAll();
+      const timestamps = result.map((e) => (e as any)._timestamp);
+      expect(timestamps[0]).toBe('2024-01-01T00:00:00Z');
+      expect(timestamps[1]).toBe('2024-06-01T00:00:00Z');
+    });
+
     it('debe aplicar filtro de fechas cuando se proporciona', async () => {
       createRepo.find.mockResolvedValue([
         { id: 1, recorded_at: '2024-01-15T00:00:00Z' },
@@ -215,6 +176,7 @@ describe('EventsService', () => {
       };
       const result = await service.findAll(filter);
       expect(result).toHaveLength(1);
+      expect((result[0] as any).id).toBe(1);
     });
   });
 
@@ -224,8 +186,11 @@ describe('EventsService', () => {
   describe('findBySource', () => {
     it('debe buscar en las 4 tablas por source', async () => {
       createRepo.findBy.mockResolvedValue([{ id: 1, source: 'api-test' }]);
+
       const result = await service.findBySource('api-test');
       expect(result).toHaveLength(1);
+      expect(createRepo.findBy).toHaveBeenCalledWith({ source: 'api-test' });
+      expect(updateRepo.findBy).toHaveBeenCalledWith({ source: 'api-test' });
     });
 
     it('debe retornar array vacío si no hay coincidencias', async () => {
@@ -240,8 +205,15 @@ describe('EventsService', () => {
   describe('findByEntity', () => {
     it('debe buscar en las 4 tablas por entity', async () => {
       updateRepo.findBy.mockResolvedValue([{ id: 5, entity: 'user' }]);
+
       const result = await service.findByEntity('user');
       expect(result).toHaveLength(1);
+      expect(updateRepo.findBy).toHaveBeenCalledWith({ entity: 'user' });
+    });
+
+    it('debe retornar array vacío si no hay coincidencias', async () => {
+      const result = await service.findByEntity('no-existe');
+      expect(result).toEqual([]);
     });
   });
 
@@ -249,7 +221,7 @@ describe('EventsService', () => {
   // getStats
   // ─────────────────────────────────────────────
   describe('getStats', () => {
-    it('debe retornar conteos correctos', async () => {
+    it('debe retornar conteos correctos de las 4 tablas', async () => {
       createRepo.count.mockResolvedValue(10);
       updateRepo.count.mockResolvedValue(5);
       deleteRepo.count.mockResolvedValue(2);
@@ -264,10 +236,21 @@ describe('EventsService', () => {
         total: 20,
       });
     });
+
+    it('debe retornar ceros cuando no hay eventos', async () => {
+      const result = await service.getStats();
+      expect(result).toEqual({
+        create: 0,
+        update: 0,
+        delete: 0,
+        query: 0,
+        total: 0,
+      });
+    });
   });
 
   // ─────────────────────────────────────────────
-  // applyDateRangeFilter
+  // applyDateRangeFilter (helper público)
   // ─────────────────────────────────────────────
   describe('applyDateRangeFilter', () => {
     const makeEvent = (timestamp: string) => ({
@@ -277,22 +260,36 @@ describe('EventsService', () => {
 
     const events = [
       makeEvent('2024-01-10T00:00:00.000Z'),
+      makeEvent('2024-03-15T12:00:00.000Z'),
       makeEvent('2024-06-20T08:30:00.000Z'),
+      makeEvent('2024-09-01T00:00:00.000Z'),
       makeEvent('2024-12-31T23:59:59.000Z'),
     ];
 
     it('debe retornar todos los eventos si no hay filtro', () => {
       const result = service.applyDateRangeFilter(events, {});
+      expect(result).toHaveLength(5);
+    });
+
+    it('debe filtrar desde una fecha con solo "from"', () => {
+      const filter: DateRangeFilter = { from: '2024-06-01T00:00:00.000Z' };
+      const result = service.applyDateRangeFilter(events, filter);
       expect(result).toHaveLength(3);
     });
 
-    it('debe filtrar con "from" y "to"', () => {
+    it('debe filtrar hasta una fecha con solo "to"', () => {
+      const filter: DateRangeFilter = { to: '2024-03-31T23:59:59.000Z' };
+      const result = service.applyDateRangeFilter(events, filter);
+      expect(result).toHaveLength(2);
+    });
+
+    it('debe filtrar dentro de un rango con "from" y "to"', () => {
       const filter: DateRangeFilter = {
-        from: '2024-02-01T00:00:00.000Z',
-        to: '2024-11-30T23:59:59.000Z',
+        from: '2024-03-01T00:00:00.000Z',
+        to: '2024-09-30T23:59:59.000Z',
       };
       const result = service.applyDateRangeFilter(events, filter);
-      expect(result).toHaveLength(1);
+      expect(result).toHaveLength(3);
     });
 
     it('debe retornar array vacío si from > to', () => {
@@ -302,6 +299,16 @@ describe('EventsService', () => {
       };
       const result = service.applyDateRangeFilter(events, filter);
       expect(result).toHaveLength(0);
+    });
+
+    it('debe incluir eventos sin _timestamp (tolerante)', () => {
+      const eventsWithMissing = [
+        makeEvent('2024-06-01T00:00:00.000Z'),
+        { _table: 'query_events', _timestamp: '' },
+      ];
+      const filter: DateRangeFilter = { from: '2024-01-01T00:00:00.000Z' };
+      const result = service.applyDateRangeFilter(eventsWithMissing, filter);
+      expect(result.length).toBeGreaterThanOrEqual(1);
     });
   });
 });

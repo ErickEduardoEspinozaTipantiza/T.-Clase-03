@@ -50,7 +50,6 @@ export class EventsController {
       this.logger.log('Evento registrado exitosamente', 'EventsController', {
         action: dto.action,
         source: dto.source,
-        correlationId: result.correlationId,
       });
 
       return result;
@@ -77,6 +76,7 @@ export class EventsController {
   @Get()
   async findAll(@Query('from') from?: string, @Query('to') to?: string) {
     try {
+      // Validación: si ambos parámetros están presentes, from debe ser <= to
       if (from && to) {
         const fromDate = new Date(from);
         const toDate = new Date(to);
@@ -90,24 +90,6 @@ export class EventsController {
         if (fromDate > toDate) {
           throw new BadRequestException(
             'El parámetro "from" no puede ser mayor que "to"',
-          );
-        }
-      }
-
-      if (from && !to) {
-        const fromDate = new Date(from);
-        if (isNaN(fromDate.getTime())) {
-          throw new BadRequestException(
-            'El parámetro "from" debe ser una fecha ISO 8601 válida',
-          );
-        }
-      }
-
-      if (to && !from) {
-        const toDate = new Date(to);
-        if (isNaN(toDate.getTime())) {
-          throw new BadRequestException(
-            'El parámetro "to" debe ser una fecha ISO 8601 válida',
           );
         }
       }

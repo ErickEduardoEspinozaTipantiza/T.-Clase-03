@@ -12,13 +12,8 @@ export interface MergedEventRecord {
   [key: string]: unknown;
 }
 
-/**
- * Resultado de registrar un evento.
- * `correlationId` permite rastrear la petición en los logs del servidor.
- */
 export interface EventRegistrationResult {
   ok: boolean;
-  correlationId: string;
 }
 
 /**
