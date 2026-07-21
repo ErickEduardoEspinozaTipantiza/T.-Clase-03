@@ -8,7 +8,13 @@ import { AppService } from './app.service';
 import { LoggerModule } from './common/logger/logger.module';
 
 @Module({
-  imports: [DatabaseModule, EventsModule, HealthModule, StatsModule, LoggerModule],
+  imports: [
+    DatabaseModule,
+    EventsModule,
+    HealthModule,
+    StatsModule,
+    LoggerModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })

@@ -1,4 +1,9 @@
-import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Request } from 'express';
 import { LoggerService } from '../logger/logger.service';
 
@@ -8,7 +13,10 @@ export class ApiKeyGuard implements CanActivate {
 
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest<Request>();
-    const apiKey = request.headers[process.env.API_KEY_HEADER?.toLowerCase() || 'x-fis-epn-key'];
+    const apiKey =
+      request.headers[
+        process.env.API_KEY_HEADER?.toLowerCase() || 'x-fis-epn-key'
+      ];
     const expectedKey = process.env.API_KEY_SECRET;
 
     if (!apiKey) {
@@ -21,12 +29,16 @@ export class ApiKeyGuard implements CanActivate {
     }
 
     if (apiKey !== expectedKey) {
-      this.logger.warn('Intento de acceso con API-Key inválida', 'ApiKeyGuard', {
-        endpoint: request.url,
-        method: request.method,
-        ip: request.ip,
-        providedKey: apiKey.toString().slice(0, 10) + '***',
-      });
+      this.logger.warn(
+        'Intento de acceso con API-Key inválida',
+        'ApiKeyGuard',
+        {
+          endpoint: request.url,
+          method: request.method,
+          ip: request.ip,
+          providedKey: apiKey.toString().slice(0, 10) + '***',
+        },
+      );
       throw new UnauthorizedException('API-Key inválida');
     }
 
